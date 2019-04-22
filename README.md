@@ -36,6 +36,7 @@ $list = [
     [
         'id' => 1,
         'type' => 1,
+        'mobile' => '18888888888',
         'fans' => [
             'openid' => '123',
             'nickname' => '昵称',
