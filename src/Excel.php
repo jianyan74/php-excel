@@ -12,8 +12,8 @@ use PhpOffice\PhpSpreadsheet\Writer\Csv;
 /**
  * 导出导入Excel
  *
- * Class ExcelHelper
- * @package common\helpers
+ * Class Excel
+ * @package jianyan\excel
  * @author jianyan74 <751393839@qq.com>
  */
 class Excel

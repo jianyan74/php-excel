@@ -13,7 +13,7 @@ composer require jianyan74/php-excel
 引入
 
 ```
-use jianyan74\excel\Excel;
+use jianyan\excel\Excel;
 ```
 
 ## Demo
