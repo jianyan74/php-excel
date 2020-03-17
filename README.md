@@ -53,8 +53,8 @@ $list = [
 // 简单使用
 return Excel::exportData($list, $header);
 
-// 定制 默认导出xlsx 支持 : xlsx/xls/html/csv
-return Excel::exportData($list, $header, '测试', 'xlsx');
+// 定制 默认导出xlsx 支持 : xlsx/xls/html/csv， 支持写入绝对路径
+return Excel::exportData($list, $header, '测试', 'xlsx', '/www/data/');
 
 // 另外一种导出csv方式
 return Excel::exportCsvData($list, $header);
