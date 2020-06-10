@@ -59,6 +59,11 @@ return Excel::exportData($list, $header, '测试', 'xlsx', '/www/data/');
 // 另外一种导出csv方式
 return Excel::exportCsvData($list, $header);
 
+// 带图片的 
+Excel::exportData($list, $header,date('Y-m-d h:i:s'),'xlsx','',['D','E']);
+Excel::exportData($list, $header,date('Y-m-d h:i:s'),'xlsx','',[4,5]);
+
+
 ```
 
 ### 导入
