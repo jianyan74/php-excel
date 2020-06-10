@@ -30,6 +30,7 @@ $header = [
         return $model['sex'] == 1 ? '男' : '女';
     }],
     ['创建时间', 'created_at', 'date', 'Y-m-d'],
+    ['图片', 'image', 'text'],// 本地图片 ./images/765456898612.jpg
 ];
 
 $list = [
