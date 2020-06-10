@@ -8,6 +8,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Html;
 use PhpOffice\PhpSpreadsheet\Writer\Xls;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Writer\Csv;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
 /**
  * 导出导入Excel
@@ -29,7 +30,7 @@ class Excel
      * @throws \PhpOffice\PhpSpreadsheet\Exception
      * @throws \PhpOffice\PhpSpreadsheet\Writer\Exception
      */
-    public static function exportData($list = [], $header = [], $filename = '', $suffix = 'xlsx', $path = '')
+    public static function exportData($list = [], $header = [], $filename = '', $suffix = 'xlsx', $path = '', $image = [])
     {
         if (!is_array ($list) || !is_array ($header)) {
             return false;
@@ -64,7 +65,31 @@ class Excel
                     // 解析字段
                     $realData = self::formatting($header[$key], trim(self::formattingField($row, $value[1])), $row);
                     // 写入excel
-                    $sheet->setCellValue(Coordinate::stringFromColumnIndex($span) . $column, $realData);
+                    $rowR = Coordinate::stringFromColumnIndex($span);
+                    $sheet->getColumnDimension($rowR)->setWidth(20);
+                    if(in_array($span,$image)&&file_exists($realData) || in_array($rowR,$image)&&file_exists($realData)){ // 如果这一列应该是图片
+                        $drawing = new Drawing();
+                        $drawing->setName('image');
+                        $drawing->setDescription('image');
+                        try{
+                            $drawing->setPath($realData);
+                        }catch(\Exception $e){
+                            echo $e->getMessage();
+                            echo '<br>可能是图片丢失了或者无权限';
+                            die;
+                        }
+
+                        $drawing->setWidth(80);
+                        $drawing->setHeight(80);
+                        $drawing->setCoordinates($rowR . $column);//A1
+                        $drawing->setOffsetX(12);
+                        $drawing->setOffsetY(12);
+                        $drawing->setWorksheet($spreadsheet->getActiveSheet());
+                    }else{
+                        $sheet->setCellValue($rowR . $column, $realData);
+                    }
+
+
                     $span++;
                 }
 
@@ -129,7 +154,6 @@ class Excel
 
                 break;
         }
-
         return true;
     }
 
@@ -307,7 +331,11 @@ class Excel
     {
         $newField = explode('.', $field);
         if (count($newField) == 1) {
-            return $row[$field];
+           if(isset($row[$field])){
+                return $row[$field];
+            }else{
+                return false;
+            }
         }
 
         foreach ($newField as $item) {
