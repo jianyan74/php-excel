@@ -30,6 +30,7 @@ $header = [
         return $model['sex'] == 1 ? '男' : '女';
     }],
     ['创建时间', 'created_at', 'date', 'Y-m-d'],
+    ['图片', 'image', 'text'],// 本地图片 ./images/765456898612.jpg
 ];
 
 $list = [
@@ -58,6 +59,11 @@ return Excel::exportData($list, $header, '测试', 'xlsx', '/www/data/');
 
 // 另外一种导出csv方式
 return Excel::exportCsvData($list, $header);
+
+// 带图片的 
+Excel::exportData($list, $header,date('Y-m-d h:i:s'),'xlsx','',['D','E']);
+Excel::exportData($list, $header,date('Y-m-d h:i:s'),'xlsx','',[4,5]);
+
 
 ```
 
