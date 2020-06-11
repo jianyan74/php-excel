@@ -67,24 +67,51 @@ class Excel
                     // 写入excel
                     $rowR = Coordinate::stringFromColumnIndex($span);
                     $sheet->getColumnDimension($rowR)->setWidth(20);
-                    if(in_array($span,$image)&&file_exists($realData) || in_array($rowR,$image)&&file_exists($realData)){ // 如果这一列应该是图片
-                        $drawing = new Drawing();
-                        $drawing->setName('image');
-                        $drawing->setDescription('image');
-                        try{
-                            $drawing->setPath($realData);
-                        }catch(\Exception $e){
-                            echo $e->getMessage();
-                            echo '<br>可能是图片丢失了或者无权限';
-                            die;
-                        }
+                    if(in_array($span,$image) || in_array($rowR,$image) ){ // 如果这一列应该是图片
+                        if(file_exists($realData)){ // 本地文件
+                            $drawing = new Drawing();
+                            $drawing->setName('image');
+                            $drawing->setDescription('image');
+                            try{
+                                $drawing->setPath($realData);
+                            }catch(\Exception $e){
+                                echo $e->getMessage();
+                                echo '<br>可能是图片丢失了或者无权限';
+                                die;
+                            }
 
-                        $drawing->setWidth(80);
-                        $drawing->setHeight(80);
-                        $drawing->setCoordinates($rowR . $column);//A1
-                        $drawing->setOffsetX(12);
-                        $drawing->setOffsetY(12);
-                        $drawing->setWorksheet($spreadsheet->getActiveSheet());
+                            $drawing->setWidth(80);
+                            $drawing->setHeight(80);
+                            $drawing->setCoordinates($rowR . $column);//A1
+                            $drawing->setOffsetX(12);
+                            $drawing->setOffsetY(12);
+                            $drawing->setWorksheet($spreadsheet->getActiveSheet());
+                        }else{ // 可能是 网络文件
+                            $img =  self::curlGet($realData);
+                            $file_info = pathinfo($realData);
+                            $extension = $file_info['extension'];// 文件后缀
+                            $dir = '.' . DIRECTORY_SEPARATOR . 'execlImg'. DIRECTORY_SEPARATOR . \date('Y-m-d'). DIRECTORY_SEPARATOR;// 文件夹名
+                            $basename = time(). mt_rand(1000,9999).'.'.$extension;// 文件名
+                            is_dir($dir) OR mkdir($dir, 0777, true); //进行检测文件夹是否存在
+                            file_put_contents($dir.$basename , $img);
+                            $drawing = new Drawing();
+                            $drawing->setName('image');
+                            $drawing->setDescription('image');
+                            try{
+                                $drawing->setPath($dir.$basename);
+                            }catch(\Exception $e){
+                                echo $e->getMessage();
+                                echo '<br>可能是图片丢失了或者无权限';
+                                die;
+                            }
+
+                            $drawing->setWidth(80);
+                            $drawing->setHeight(80);
+                            $drawing->setCoordinates($rowR . $column);//A1
+                            $drawing->setOffsetX(12);
+                            $drawing->setOffsetY(12);
+                            $drawing->setWorksheet($spreadsheet->getActiveSheet());
+                        }
                     }else{
                         $sheet->setCellValue($rowR . $column, $realData);
                     }
@@ -347,5 +374,17 @@ class Excel
         }
 
         return is_array($row) ? false : $row;
+    }
+    
+    public static function curlGet($url)
+    {
+        $ch = \curl_init();
+        \curl_setopt($ch, CURLOPT_URL, $url);
+        \curl_setopt($ch, CURLOPT_HEADER, 0);
+        \curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        \curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 这个是重点 请求https。
+        $data = \curl_exec($ch);
+        \curl_close($ch);
+        return $data;
     }
 }
