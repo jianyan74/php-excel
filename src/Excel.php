@@ -9,6 +9,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xls;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Writer\Csv;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
  * 导出导入Excel
@@ -22,10 +23,12 @@ class Excel
     /**
      * 导出Excel
      *
-     * @param array $list
-     * @param array $header
-     * @param string $filename
-     * @param string $title
+     * @param array $list   数据
+     * @param array $header 数据处理格式
+     * @param string $filename  导出的文件名
+     * @param string $suffix    导出的格式
+     * @param string $path      导出的存放地址 无则不在服务器存放
+     * @param string $image    导出的格式 可以用 大写字母 或者 数字 标识 哪一列
      * @return bool
      * @throws \PhpOffice\PhpSpreadsheet\Exception
      * @throws \PhpOffice\PhpSpreadsheet\Writer\Exception
@@ -244,62 +247,54 @@ class Excel
     /**
      * 导入
      *
-     * @param $filePath
-     * @param int $startRow
+     * @param $filePath     excel的服务器存放地址 可以取临时地址
+     * @param int $startRow 开始和行数
+     * @param bool $hasImg  导出的时候是否有图片
+     * @param string $suffix    格式
+     * @param string $imageFilePath     作为临时使用的 图片存放的地址
      * @return array|mixed
      * @throws Exception
      * @throws \PhpOffice\PhpSpreadsheet\Exception
      * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception
      */
-    public static function import($filePath, $startRow = 1)
+    public static function import($filePath, $startRow = 1,$hasImg = false,$suffix = 'Xlsx',$imageFilePath = null)
     {
-        $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
-        $reader->setReadDataOnly(true);
-        if (!$reader->canRead($filePath)) {
-            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xls();
-            // setReadDataOnly Set read data only 只读单元格的数据，不格式化 e.g. 读时间会变成一个数据等
-            $reader->setReadDataOnly(true);
-
-            if (!$reader->canRead($filePath)) {
-                throw new Exception('不能读取Excel');
+        if($hasImg){
+            if($imageFilePath == null){
+                $imageFilePath = '.' . DIRECTORY_SEPARATOR . 'execlImg'. DIRECTORY_SEPARATOR . \date('Y-m-d'). DIRECTORY_SEPARATOR;
             }
+            if (!file_exists($imageFilePath)) {
+                //如果目录不存在则递归创建
+                mkdir($imageFilePath, 0777, true);
+            }
+        }
+        $reader = IOFactory::createReader($suffix);
+        if (!$reader->canRead($filePath)) {
+            throw new Exception('不能读取Excel');
         }
 
         $spreadsheet = $reader->load($filePath);
-        $sheetCount = $spreadsheet->getSheetCount();// 获取sheet的数量
+        $sheetCount = $spreadsheet->getSheetCount();// 获取sheet(工作表)的数量
 
         // 获取所有的sheet表格数据
         $excleDatas = [];
         $emptyRowNum = 0;
         for ($i = 0; $i < $sheetCount; $i++) {
-            $currentSheet = $spreadsheet->getSheet($i); // 读取excel文件中的第一个工作表
-            $allColumn = $currentSheet->getHighestColumn(); // 取得最大的列号
-            $allColumn = Coordinate::columnIndexFromString($allColumn); // 由列名转为列数('AB'->28)
-            $allRow = $currentSheet->getHighestRow(); // 取得一共有多少行
-
-            $arr = [];
-            for ($currentRow = $startRow; $currentRow <= $allRow; $currentRow++) {
-                // 从第1列开始输出
-                for ($currentColumn = 1; $currentColumn <= $allColumn; $currentColumn++) {
-                    $val = $currentSheet->getCellByColumnAndRow($currentColumn, $currentRow)->getValue();
-                    $arr[$currentRow][] = trim($val);
-                }
-
-                // $arr[$currentRow] = array_filter($arr[$currentRow]);
-                // 统计连续空行
-                if (empty($arr[$currentRow]) && $emptyRowNum <= 50) {
-                    $emptyRowNum++ ;
-                } else {
-                    $emptyRowNum = 0;
-                }
-                // 防止坑队友的同事在excel里面弄出很多的空行，陷入很漫长的循环中，设置如果连续超过50个空行就退出循环，返回结果
-                // 连续50行数据为空，不再读取后面行的数据，防止读满内存
-                if ($emptyRowNum > 50) {
-                    break;
+            $objWorksheet = $spreadsheet->getSheet($i); // 读取excel文件中的第一个工作表
+            $data = $objWorksheet->toArray();
+            if($hasImg){
+                foreach ($objWorksheet->getDrawingCollection() as $drawing) {
+                    list($startColumn, $startRow) = Coordinate::coordinateFromString($drawing->getCoordinates());
+                    $imageFileName = $drawing->getCoordinates() . mt_rand(1000, 9999);
+                    $imageFileName .= '.'.$drawing->getExtension();
+                    $source = imagecreatefromjpeg($drawing->getPath());
+                    imagejpeg($source, $imageFilePath . $imageFileName);
+    
+                    $startColumn = self::ABC2decimal($startColumn);
+                    $data[$startRow-1][$startColumn] = $imageFilePath . $imageFileName;
                 }
             }
-
-            $excleDatas[$i] = $arr; // 多个sheet的数组的集合
+            $excleDatas[$i] = $data; // 多个sheet的数组的集合
         }
 
         // 这里我只需要用到第一个sheet的数据，所以只返回了第一个sheet的数据
@@ -308,6 +303,18 @@ class Excel
         // 第一行数据就是空的，为了保留其原始数据，第一行数据就不做array_fiter操作；
         $returnData = $returnData && isset($returnData[$startRow]) && !empty($returnData[$startRow])  ? array_filter($returnData) : $returnData;
         return $returnData;
+    }
+
+    private static function ABC2decimal($abc){
+        $ten = 0;
+        $len = strlen($abc);
+        for($i=1;$i<=$len;$i++){
+            $char = substr($abc,0-$i,1);//反向获取单个字符
+
+            $int = ord($char);
+            $ten += ($int-65)*pow(26,$i-1);
+        }
+        return $ten;
     }
 
     /**

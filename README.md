@@ -61,6 +61,12 @@ return Excel::exportData($list, $header, '测试', 'xlsx', '/www/data/');
 return Excel::exportCsvData($list, $header);
 
 // 带图片的 
+* @param array $list   数据
+* @param array $header 数据处理格式
+* @param string $filename  导出的文件名
+* @param string $suffix    导出的格式
+* @param string $path      导出的存放地址 无则不在服务器存放
+* @param string $image    导出的格式 可以用 大写字母 或者 数字 标识 哪一列
 Excel::exportData($list, $header,date('Y-m-d h:i:s'),'xlsx','',['D','E']);
 Excel::exportData($list, $header,date('Y-m-d h:i:s'),'xlsx','',[4,5]);
 
@@ -73,11 +79,14 @@ Excel::exportData($list, $header,date('Y-m-d h:i:s'),'xlsx','',[4,5]);
 /**
  * 导入
  *
- * @param $filePath 文件路径
- * @param int $startRow 开始行数 默认 1
+ * @param $filePath     excel的服务器存放地址 可以取临时地址
+ * @param int $startRow 开始和行数 默认1
+ * @param bool $hasImg  导出的时候是否有图片
+ * @param string $suffix    格式
+ * @param string $imageFilePath     作为临时使用的 图片存放的地址
  * @return array|bool|mixed
  */
-$data = Excel::import($filePath, $startRow);
+$data = Excel::import($filePath, $startRow = 1,$hasImg = false,$suffix = 'Xlsx',$imageFilePath = null);
 ```
 
 ### 问题反馈
