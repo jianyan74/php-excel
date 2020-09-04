@@ -1,8 +1,10 @@
 <?php
+
 namespace jianyan\excel;
 
 use Exception;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Html;
 use PhpOffice\PhpSpreadsheet\Writer\Xls;
@@ -23,19 +25,25 @@ class Excel
     /**
      * 导出Excel
      *
-     * @param array $list   数据
+     * @param array $list 数据
      * @param array $header 数据处理格式
-     * @param string $filename  导出的文件名
-     * @param string $suffix    导出的格式
-     * @param string $path      导出的存放地址 无则不在服务器存放
-     * @param string $image    导出的格式 可以用 大写字母 或者 数字 标识 哪一列
+     * @param string $filename 导出的文件名
+     * @param string $suffix 导出的格式
+     * @param string $path 导出的存放地址 无则不在服务器存放
+     * @param string $image 导出的格式 可以用 大写字母 或者 数字 标识 哪一列
      * @return bool
      * @throws \PhpOffice\PhpSpreadsheet\Exception
      * @throws \PhpOffice\PhpSpreadsheet\Writer\Exception
      */
-    public static function exportData($list = [], $header = [], $filename = '', $suffix = 'xlsx', $path = '', $image = [])
-    {
-        if (!is_array ($list) || !is_array ($header)) {
+    public static function exportData(
+        $list = [],
+        $header = [],
+        $filename = '',
+        $suffix = 'xlsx',
+        $path = '',
+        $image = []
+    ) {
+        if (!is_array($list) || !is_array($header)) {
             return false;
         }
 
@@ -58,26 +66,26 @@ class Excel
         // 开始写入内容
         $column = 2;
         $size = ceil(count($list) / 500);
-        for($i = 0; $i < $size; $i++) {
+        for ($i = 0; $i < $size; $i++) {
             $buffer = array_slice($list, $i * 500, 500);
 
-            foreach($buffer as $k => $row) {
+            foreach ($buffer as $k => $row) {
                 $span = 1;
 
-                foreach($header as $key => $value) {
+                foreach ($header as $key => $value) {
                     // 解析字段
                     $realData = self::formatting($header[$key], trim(self::formattingField($row, $value[1])), $row);
                     // 写入excel
                     $rowR = Coordinate::stringFromColumnIndex($span);
                     $sheet->getColumnDimension($rowR)->setWidth(20);
-                    if(in_array($span,$image) || in_array($rowR,$image) ){ // 如果这一列应该是图片
-                        if(file_exists($realData)){ // 本地文件
+                    if (in_array($span, $image) || in_array($rowR, $image)) { // 如果这一列应该是图片
+                        if (file_exists($realData)) { // 本地文件
                             $drawing = new Drawing();
                             $drawing->setName('image');
                             $drawing->setDescription('image');
-                            try{
+                            try {
                                 $drawing->setPath($realData);
-                            }catch(\Exception $e){
+                            } catch (\Exception $e) {
                                 echo $e->getMessage();
                                 echo '<br>可能是图片丢失了或者无权限';
                                 die;
@@ -89,20 +97,20 @@ class Excel
                             $drawing->setOffsetX(12);
                             $drawing->setOffsetY(12);
                             $drawing->setWorksheet($spreadsheet->getActiveSheet());
-                        }else{ // 可能是 网络文件
-                            $img =  self::curlGet($realData);
+                        } else { // 可能是 网络文件
+                            $img = self::curlGet($realData);
                             $file_info = pathinfo($realData);
                             $extension = $file_info['extension'];// 文件后缀
-                            $dir = '.' . DIRECTORY_SEPARATOR . 'execlImg'. DIRECTORY_SEPARATOR . \date('Y-m-d'). DIRECTORY_SEPARATOR;// 文件夹名
-                            $basename = time(). mt_rand(1000,9999).'.'.$extension;// 文件名
-                            is_dir($dir) OR mkdir($dir, 0777, true); //进行检测文件夹是否存在
-                            file_put_contents($dir.$basename , $img);
+                            $dir = '.' . DIRECTORY_SEPARATOR . 'execlImg' . DIRECTORY_SEPARATOR . \date('Y-m-d') . DIRECTORY_SEPARATOR;// 文件夹名
+                            $basename = time() . mt_rand(1000, 9999) . '.' . $extension;// 文件名
+                            is_dir($dir) or mkdir($dir, 0777, true); //进行检测文件夹是否存在
+                            file_put_contents($dir . $basename, $img);
                             $drawing = new Drawing();
                             $drawing->setName('image');
                             $drawing->setDescription('image');
-                            try{
-                                $drawing->setPath($dir.$basename);
-                            }catch(\Exception $e){
+                            try {
+                                $drawing->setPath($dir . $basename);
+                            } catch (\Exception $e) {
                                 echo $e->getMessage();
                                 echo '<br>可能是图片丢失了或者无权限';
                                 die;
@@ -115,8 +123,10 @@ class Excel
                             $drawing->setOffsetY(12);
                             $drawing->setWorksheet($spreadsheet->getActiveSheet());
                         }
-                    }else{
-                        $sheet->setCellValue($rowR . $column, $realData);
+                    } else {
+                        // $sheet->setCellValue($rowR . $column, $realData);
+                        // 写入excel
+                        $sheet->setCellValueExplicit(Coordinate::stringFromColumnIndex($span) . $column, $realData, DataType::TYPE_STRING);
                     }
 
 
@@ -129,8 +139,7 @@ class Excel
         }
 
         // 直接输出下载
-        switch ($suffix)
-        {
+        switch ($suffix) {
             case 'xlsx' :
                 $writer = new Xlsx($spreadsheet);
                 if (!empty($path)) {
@@ -184,6 +193,7 @@ class Excel
 
                 break;
         }
+
         return true;
     }
 
@@ -197,7 +207,7 @@ class Excel
      */
     public static function exportCsvData($list = [], $header = [], $filename = '')
     {
-        if (!is_array ($list) || !is_array ($header)) {
+        if (!is_array($list) || !is_array($header)) {
             return false;
         }
 
@@ -208,7 +218,7 @@ class Excel
         !$filename && $filename = time();
 
         $html = "\xEF\xBB\xBF";
-        foreach($header as $k => $v) {
+        foreach ($header as $k => $v) {
             $html .= $v[0] . "\t ,";
         }
 
@@ -218,13 +228,13 @@ class Excel
             $info = [];
             $size = ceil(count($list) / 500);
 
-            for($i = 0; $i < $size; $i++) {
+            for ($i = 0; $i < $size; $i++) {
                 $buffer = array_slice($list, $i * 500, 500);
 
-                foreach($buffer as $k => $row) {
+                foreach ($buffer as $k => $row) {
                     $data = [];
 
-                    foreach($header as $key => $value) {
+                    foreach ($header as $key => $value) {
                         // 解析字段
                         $realData = self::formatting($header[$key], trim(self::formattingField($row, $value[1])), $row);
                         $data[] = str_replace(PHP_EOL, '', $realData);
@@ -249,19 +259,19 @@ class Excel
      *
      * @param $filePath     excel的服务器存放地址 可以取临时地址
      * @param int $startRow 开始和行数
-     * @param bool $hasImg  导出的时候是否有图片
-     * @param string $suffix    格式
-     * @param string $imageFilePath     作为临时使用的 图片存放的地址
+     * @param bool $hasImg 导出的时候是否有图片
+     * @param string $suffix 格式
+     * @param string $imageFilePath 作为临时使用的 图片存放的地址
      * @return array|mixed
      * @throws Exception
      * @throws \PhpOffice\PhpSpreadsheet\Exception
      * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception
      */
-    public static function import($filePath, $startRow = 1,$hasImg = false,$suffix = 'Xlsx',$imageFilePath = null)
+    public static function import($filePath, $startRow = 1, $hasImg = false, $suffix = 'Xlsx', $imageFilePath = null)
     {
-        if($hasImg){
-            if($imageFilePath == null){
-                $imageFilePath = '.' . DIRECTORY_SEPARATOR . 'execlImg'. DIRECTORY_SEPARATOR . \date('Y-m-d'). DIRECTORY_SEPARATOR;
+        if ($hasImg) {
+            if ($imageFilePath == null) {
+                $imageFilePath = '.' . DIRECTORY_SEPARATOR . 'execlImg' . DIRECTORY_SEPARATOR . \date('Y-m-d') . DIRECTORY_SEPARATOR;
             }
             if (!file_exists($imageFilePath)) {
                 //如果目录不存在则递归创建
@@ -282,16 +292,16 @@ class Excel
         for ($i = 0; $i < $sheetCount; $i++) {
             $objWorksheet = $spreadsheet->getSheet($i); // 读取excel文件中的第一个工作表
             $data = $objWorksheet->toArray();
-            if($hasImg){
+            if ($hasImg) {
                 foreach ($objWorksheet->getDrawingCollection() as $drawing) {
                     list($startColumn, $startRow) = Coordinate::coordinateFromString($drawing->getCoordinates());
                     $imageFileName = $drawing->getCoordinates() . mt_rand(1000, 9999);
-                    $imageFileName .= '.'.$drawing->getExtension();
+                    $imageFileName .= '.' . $drawing->getExtension();
                     $source = imagecreatefromjpeg($drawing->getPath());
                     imagejpeg($source, $imageFilePath . $imageFileName);
-    
+
                     $startColumn = self::ABC2decimal($startColumn);
-                    $data[$startRow-1][$startColumn] = $imageFilePath . $imageFileName;
+                    $data[$startRow - 1][$startColumn] = $imageFilePath . $imageFileName;
                 }
             }
             $excleDatas[$i] = $data; // 多个sheet的数组的集合
@@ -301,19 +311,22 @@ class Excel
         $returnData = $excleDatas ? array_shift($excleDatas) : [];
 
         // 第一行数据就是空的，为了保留其原始数据，第一行数据就不做array_fiter操作；
-        $returnData = $returnData && isset($returnData[$startRow]) && !empty($returnData[$startRow])  ? array_filter($returnData) : $returnData;
+        $returnData = $returnData && isset($returnData[$startRow]) && !empty($returnData[$startRow]) ? array_filter($returnData) : $returnData;
+
         return $returnData;
     }
 
-    private static function ABC2decimal($abc){
+    private static function ABC2decimal($abc)
+    {
         $ten = 0;
         $len = strlen($abc);
-        for($i=1;$i<=$len;$i++){
-            $char = substr($abc,0-$i,1);//反向获取单个字符
+        for ($i = 1; $i <= $len; $i++) {
+            $char = substr($abc, 0 - $i, 1);//反向获取单个字符
 
             $int = ord($char);
-            $ten += ($int-65)*pow(26,$i-1);
+            $ten += ($int - 65) * pow(26, $i - 1);
         }
+
         return $ten;
     }
 
@@ -327,8 +340,7 @@ class Excel
     {
         !isset($array[2]) && $array[2] = 'text';
 
-        switch ($array[2])
-        {
+        switch ($array[2]) {
             // 文本
             case 'text' :
                 return $value;
@@ -339,7 +351,7 @@ class Excel
                 break;
             // 选择框
             case  'selectd' :
-                return  $array[3][$value] ?? null ;
+                return $array[3][$value] ?? null;
                 break;
             // 匿名函数
             case  'function' :
@@ -365,9 +377,9 @@ class Excel
     {
         $newField = explode('.', $field);
         if (count($newField) == 1) {
-           if(isset($row[$field])){
+            if (isset($row[$field])) {
                 return $row[$field];
-            }else{
+            } else {
                 return false;
             }
         }
@@ -382,7 +394,7 @@ class Excel
 
         return is_array($row) ? false : $row;
     }
-    
+
     public static function curlGet($url)
     {
         $ch = \curl_init();
@@ -392,6 +404,7 @@ class Excel
         \curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 这个是重点 请求https。
         $data = \curl_exec($ch);
         \curl_close($ch);
+
         return $data;
     }
 }
