@@ -280,13 +280,13 @@ class Excel
         }
         // 是否自动识别导入表格格式
         if($suffix==null){
-             // 自动识别格式
+             // 自动识别格式并创建读操作
              $reader = IOFactory::createReaderForFile($filePath);
         }else{
-            // 手动限制格式
+            // 通过填写的格式创建读操作
             $reader = IOFactory::createReader($suffix);
             if (!$reader->canRead($filePath)) {
-                throw new Exception('不能读取的格式');
+                throw new Exception('不能读取的excel');
             }
         }
         $spreadsheet = $reader->load($filePath);
