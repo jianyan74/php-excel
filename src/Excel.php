@@ -260,14 +260,14 @@ class Excel
      * @param $filePath     excel的服务器存放地址 可以取临时地址
      * @param int $startRow 开始和行数
      * @param bool $hasImg 导出的时候是否有图片
-     * @param string $suffix 格式
+     * @param string|null $suffix 格式 Xlsx,csv
      * @param string $imageFilePath 作为临时使用的 图片存放的地址
      * @return array|mixed
      * @throws Exception
      * @throws \PhpOffice\PhpSpreadsheet\Exception
      * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception
      */
-    public static function import($filePath, $startRow = 1, $hasImg = false, $suffix = 'Xlsx', $imageFilePath = null)
+    public static function import($filePath, $startRow = 1, $hasImg = false, $suffix = null, $imageFilePath = null)
     {
         if ($hasImg) {
             if ($imageFilePath == null) {
@@ -278,11 +278,17 @@ class Excel
                 mkdir($imageFilePath, 0777, true);
             }
         }
-        $reader = IOFactory::createReader($suffix);
-        if (!$reader->canRead($filePath)) {
-            throw new Exception('不能读取Excel');
+        // 是否自动识别导入表格格式
+        if($suffix==null){
+             // 自动识别格式
+             $reader = IOFactory::createReaderForFile($filePath);
+        }else{
+            // 手动限制格式
+            $reader = IOFactory::createReader($suffix);
+            if (!$reader->canRead($filePath)) {
+                throw new Exception('不能读取的格式');
+            }
         }
-
         $spreadsheet = $reader->load($filePath);
         $sheetCount = $spreadsheet->getSheetCount();// 获取sheet(工作表)的数量
 
