@@ -279,7 +279,7 @@ class Excel
             }
         }
         // 是否自动识别导入表格格式
-        if($suffix==null){
+        if(!$suffix){
              // 自动识别格式并创建读操作
              $reader = IOFactory::createReaderForFile($filePath);
         }else{
