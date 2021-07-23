@@ -82,11 +82,11 @@ Excel::exportData($list, $header,date('Y-m-d h:i:s'),'xlsx','',[4,5]);
  * @param $filePath     excel的服务器存放地址 可以取临时地址
  * @param int $startRow 开始和行数 默认1
  * @param bool $hasImg  导出的时候是否有图片
- * @param string $suffix    格式
+ * @param string|null $suffix    格式csv,Xlsx等 为null时自动识别 
  * @param string $imageFilePath     作为临时使用的 图片存放的地址
  * @return array|bool|mixed
  */
-$data = Excel::import($filePath, $startRow = 1,$hasImg = false,$suffix = 'Xlsx',$imageFilePath = null);
+$data = Excel::import($filePath, $startRow = 1,$hasImg = false,$suffix = null,$imageFilePath = null);
 ```
 
 ### 问题反馈
